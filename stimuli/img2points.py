@@ -97,6 +97,7 @@ for i in range(len(img)):
             prev_x = -1
         else:
             continue
+        
 # remove duplicated walls caused by lines with non-uniform length
 horizontal_wall_filtered = dict()
 for k in horizontal_wall:
@@ -186,14 +187,19 @@ init_x = np.random.choice(pool, 1)[0]
 cv2.imwrite('test.png', vis_img)
 
 # store the available stimuli in the json file
-all_stimuli = glob(os.path.join(args.project_dir, 'Assets', 'Resources', 'stimuli', '*.png'))
-
-# randomized order
-random_idx = np.random.choice(np.arange(len(all_stimuli)), len(all_stimuli), replace=False)
-record_stimuli = [{"stimuli_path": os.path.join('stimuli', os.path.basename(all_stimuli[i])[:-4])} for i in random_idx]
+record_stimuli = dict()
+for wall_len in ['long', 'medium', 'short']:
+    all_stimuli = glob(os.path.join(args.project_dir, 'Assets', 'Resources', 'stimuli', wall_len, '*.png'))
+    # randomized order
+    random_idx = np.random.choice(np.arange(len(all_stimuli)), len(all_stimuli), replace=False)
+    record_stimuli[wall_len] = [{"stimuli_path": os.path.join('stimuli', wall_len, os.path.basename(all_stimuli[i])[:-4])} for i in random_idx]
 
 save_walls = {"walls": walls, "directions": direction, "start_position": 
-              {"start_x": int(init_x), "start_y": int(init_y)}, "stimuli_dir": record_stimuli}
+              {"start_x": int(init_x), "start_y": int(init_y)}, 
+              "long_stimuli_dir": record_stimuli['long'],
+              "medium_stimuli_dir": record_stimuli['medium'],
+              "short_stimuli_dir": record_stimuli['short'],
+              }
 
 with open(os.path.join(args.project_dir, 'maze_layout.json'), 'w') as f:
     json.dump(save_walls, f)

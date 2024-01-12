@@ -18,12 +18,15 @@ public class MonkeyMaze3D : MonoBehaviour
     public Texture2D medium_wall_texture;
     public Texture2D short_wall_texture;
     GameObject wall;
+    public int short_counter = 0;
+    public int medium_counter = 0;
+    public int long_counter = 0;
 
 
     // Start is called before the first frame update
     void Start()
     {
-        string json_file = "maze_layout.json";
+        string json_file = "./maze_layout.json";
         string json_data = File.ReadAllText(json_file);
         maze_info = JsonUtility.FromJson<Maze_data>(json_data);
         Create_maze();
@@ -43,17 +46,43 @@ public class MonkeyMaze3D : MonoBehaviour
         main_cam = GameObject.Find("Main Camera");
         main_cam.transform.position = new Vector3(start_position.start_x / 5, 0f, start_position.start_y / 5);
         Debug.Log(maze_info.walls.Length);
+        Debug.Log(maze_info.long_stimuli_dir.Length);
         for (int i = 0; i < maze_info.walls.Length; i++)
        {
             var cur_wall = maze_info.walls[i];
-            var cur_stimuli = maze_info.stimuli_dir[i].stimuli_path;
-            Debug.Log(cur_stimuli);
             var is_horizontal = maze_info.directions[i].is_horizontal;
             Vector3 start_point = new Vector3(cur_wall.start_x / 5, 0f, cur_wall.start_y / 5);
             Vector3 end_point = new Vector3(cur_wall.end_x / 5, 0f, cur_wall.end_y / 5);
             SetStart(start_point);
             SetEnd(end_point);
-            Adjust(is_horizontal, cur_stimuli);
+
+            // determine the stimuli based on length of the wall
+            start.transform.LookAt(end.transform.position);
+            end.transform.LookAt(start.transform.position);
+            float distance = Vector3.Distance(start.transform.position, end.transform.position);
+            Debug.Log(distance);
+            if (distance < 10)
+            {
+                var left_stimuli = maze_info.short_stimuli_dir[short_counter].stimuli_path;
+                var right_stimuli = maze_info.short_stimuli_dir[short_counter + 1].stimuli_path;
+                short_counter += 2;
+                Adjust(is_horizontal, left_stimuli, right_stimuli, distance);
+            }
+            else if (distance >= 10 && distance < 40)
+            {
+                var left_stimuli = maze_info.medium_stimuli_dir[medium_counter].stimuli_path;
+                var right_stimuli = maze_info.medium_stimuli_dir[medium_counter + 1].stimuli_path;
+                medium_counter += 2;
+                Adjust(is_horizontal, left_stimuli, right_stimuli, distance);
+            }
+            else
+            {
+                var left_stimuli = maze_info.long_stimuli_dir[long_counter].stimuli_path;
+                var right_stimuli = maze_info.long_stimuli_dir[long_counter + 1].stimuli_path;
+                long_counter += 2;
+                Adjust(is_horizontal, left_stimuli, right_stimuli, distance);
+            }
+
         }
 
     }
@@ -74,121 +103,55 @@ public class MonkeyMaze3D : MonoBehaviour
     /*
      * invoking the wall building method
      */
-    void Adjust(bool is_horizontal, string stimuli_dir)
+    void Adjust(bool is_horizontal, string left_stimuli, string right_stimuli, float distance)
     {
-        AdjustWall(is_horizontal, stimuli_dir);
+        AdjustWall(is_horizontal, left_stimuli, right_stimuli, distance);
     }
 
     /*
      * build the wall in between start point and the end point
      */
-    void AdjustWall(bool is_horizontal, string stimuli_dir)
+    void AdjustWall(bool is_horizontal, string left_stimuli_dir,
+                string right_stimuli_dir, float distance)
     {
         // create the wall without texture
-        start.transform.LookAt(end.transform.position);
-        end.transform.LookAt(start.transform.position);
-        float distance = Vector3.Distance(start.transform.position, end.transform.position);
         wall.transform.position = start.transform.position + distance / 2 * start.transform.forward;
         wall.transform.rotation = start.transform.rotation;
         wall.transform.localScale = new Vector3(wall.transform.localScale.x, wall.transform.localScale.y, distance);
 
-        // Create materials for each surface of the cube
-        Material background_Material = new Material(Shader.Find("Standard"));
-        background_Material.mainTexture = background_texture;
-        Material long_Material = new Material(Shader.Find("Standard"));
-        long_Material.mainTexture = long_wall_texture;
-        Material medium_Material = new Material(Shader.Find("Standard"));
-        medium_Material.mainTexture = medium_wall_texture;
-        Material short_Material = new Material(Shader.Find("Standard"));
-        short_Material.mainTexture = short_wall_texture;
+        //// Create materials for each surface of the cube
+        //Material background_Material = new Material(Shader.Find("Standard"));
+        //background_Material.mainTexture = background_texture;
+        //Material long_Material = new Material(Shader.Find("Standard"));
+        //long_Material.mainTexture = long_wall_texture;
+        //Material medium_Material = new Material(Shader.Find("Standard"));
+        //medium_Material.mainTexture = medium_wall_texture;
+        //Material short_Material = new Material(Shader.Find("Standard"));
+        //short_Material.mainTexture = short_wall_texture;
 
-        //// adjust the texture based on the length of the wall (old method)
-        //MeshFilter meshFilter = wall.GetComponent<MeshFilter>();
-        ////Create_Submeshes(meshFilter);
-        //MeshRenderer meshRenderer = wall.GetComponent<MeshRenderer>();
-        //Debug.Log("render: " + meshRenderer.materials.Length);
-        //if (meshRenderer == null || meshFilter == null)
-        //{
-        //    Debug.LogError("MeshRenderer or MeshFilter component not found on the cube GameObject!");
-        //    return;
-        //}
-
-        //// Get the cube's mesh
-        //Mesh mesh = meshFilter.mesh;
-        //// Set the materials for each sub-mesh (each face of the cube)
-        //Material[] materials = new Material[mesh.subMeshCount];
-        //Debug.Log(mesh.subMeshCount);
-        //for (int i = 0; i < mesh.subMeshCount; i++)
-        //{
-        //    if (i == 2) // Index 2 corresponds to the top face of the cube
-        //        materials[i] = background_Material;
-        //    else // All other faces are the side faces
-        //    {
-        //        if (distance < 3)
-        //        {
-        //            materials[i] = background_Material;
-        //        }
-        //        else if (distance >= 3 && distance < 10)
-        //        {
-        //            materials[i] = short_Material;
-        //        }
-        //        else if (distance >= 10 && distance < 30)
-        //        {
-        //            materials[i] = medium_Material;
-        //        }
-        //        else
-        //        {
-        //            materials[i] = long_Material;
-        //        }
-        //    }
-        //}
-        //// Assign materials to the cube's mesh
-        //meshRenderer.materials = materials;
 
         // adjust the texture based on the length of the wall (new method)
         MeshRenderer left_render = wall.transform.Find("left").GetComponent<MeshRenderer>();
         Material[] left_material = new Material[1];
-        Debug.Log("render: " + left_render.sharedMaterials.Length);
-
         MeshRenderer right_render = wall.transform.Find("right").GetComponent<MeshRenderer>();
         Material[] right_material = new Material[1];
         //Debug.Log(distance);
 
-        //// rending texture based on the distance
-        //if (distance < 5)
-        //{
-        //    left_material[0] = background_Material;
-        //    right_material[0] = background_Material;
-        //}
-        //else if (distance >= 5 && distance < 10)
-        //{
-        //    left_material[0] = short_Material;
-        //    right_material[0] = short_Material;
-        //}
-        //else if (distance >= 10 && distance < 30)
-        //{
-        //    left_material[0] = medium_Material;
-        //    right_material[0] = medium_Material;
-        //}
-        //else
-        //{
-        //    left_material[0] = long_Material;
-        //    right_material[0] = long_Material;
-        //}
-
-
 
         // rending texture with unique face combination
-        Texture2D cur_texture = Resources.Load<Texture2D>(stimuli_dir);
-        Material cur_material = new Material(Shader.Find("Standard")); // You can use a different shader if needed
-        cur_material.mainTexture = cur_texture;
-        left_material[0] = cur_material;
-        right_material[0] = cur_material;
+        Texture2D cur_left_texture = Resources.Load<Texture2D>(left_stimuli_dir);
+        Material cur_left_material = new Material(Shader.Find("Standard")); // You can use a different shader if needed
+        cur_left_material.mainTexture = cur_left_texture;
+        cur_left_material.mainTexture.wrapMode = TextureWrapMode.Repeat;
+        left_material[0] = cur_left_material;
+        Texture2D cur_right_texture = Resources.Load<Texture2D>(right_stimuli_dir);
+        Material cur_right_material = new Material(Shader.Find("Standard")); // You can use a different shader if needed
+        cur_right_material.mainTexture = cur_right_texture;
+        cur_right_material.mainTexture.wrapMode = TextureWrapMode.Repeat;
+        right_material[0] = cur_right_material;
 
         left_render.materials = left_material;
         right_render.materials = right_material;
-
-
 
         wall.transform.Find("left").transform.localPosition = new Vector3(-0.511f, 0f, 0f);
         wall.transform.Find("right").transform.localPosition = new Vector3(0.511f, 0f, 0f);

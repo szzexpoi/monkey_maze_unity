@@ -67,5 +67,7 @@ public class Maze_data
     public Wall_data[] walls;
     public Direction_data[] directions;
     public Start_position start_position;
-    public Stimuli_dir[] stimuli_dir;
+    public Stimuli_dir[] long_stimuli_dir;
+    public Stimuli_dir[] medium_stimuli_dir;
+    public Stimuli_dir[] short_stimuli_dir;
 }
